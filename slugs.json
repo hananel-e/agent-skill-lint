@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "source": "bundled",
+  "slugs": [
+    "architect",
+    "ask",
+    "build",
+    "code",
+    "debug",
+    "env",
+    "merge-resolver",
+    "orchestrator",
+    "review",
+    "ship",
+    "spec",
+    "task-break",
+    "test",
+    "test-dev-orchestrator",
+    "analyst"
+  ]
+}

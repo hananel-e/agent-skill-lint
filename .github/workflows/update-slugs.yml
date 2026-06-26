@@ -1,0 +1,64 @@
+name: Update slug registry
+
+on:
+  schedule:
+    # Run every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (print diff, do not open PR)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-slugs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate slugs.json from .roomodes files
+        id: regen
+        run: |
+          python3 scripts/collect_slugs.py \
+            --input slugs.json \
+            --output slugs.json \
+            --roomodes-glob "**/.roomodes"
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if git diff --quiet slugs.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff slugs.json
+          fi
+
+      - name: Open PR if slugs changed
+        if: steps.diff.outputs.changed == 'true' && github.event.inputs.dry_run != 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update slugs.json from .roomodes"
+          branch: chore/update-slugs
+          title: "chore: update known mode slugs"
+          body: |
+            Automated update of `slugs.json` from `.roomodes` files found in the repository.
+
+            Review the diff and merge if the new slugs look correct.
+          labels: "automated,slugs"
+          delete-branch: true
+
+      - name: No changes
+        if: steps.diff.outputs.changed == 'false'
+        run: echo "slugs.json is already up to date."

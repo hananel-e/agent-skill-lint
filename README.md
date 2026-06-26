@@ -51,6 +51,26 @@ skill-lint roo explain ROO013
 
 # Check tool dependencies
 skill-lint doctor
+
+# ── v0.2.0 commands ──────────────────────────────────────────────────────────
+
+# Score skills (A-F quality grades)
+skill-lint roo score .
+skill-lint roo score . --format json
+skill-lint roo score . --fail-under 80       # exit 1 if average < 80
+
+# Simulate routing for a query (no ML required)
+skill-lint roo simulate "write and fix code" --path .roo/skills/
+skill-lint roo simulate "plan architecture" --path . --top 3
+skill-lint roo simulate "debug errors" --path . --embeddings   # requires [embeddings] extra
+
+# Check framework sync (.roomodes ↔ skills)
+skill-lint roo sync .
+skill-lint roo sync . --format json
+skill-lint roo sync . --roomodes .roomodes   # use a specific .roomodes file
+
+# Update the known mode slug cache from GitHub
+skill-lint roo update-slugs
 ```
 
 ---
@@ -108,6 +128,9 @@ skill-lint doctor
 | `ROO030` | warning | Body references a skill name with no corresponding `skill.md` |
 | `ROO031` | warning | Handoff file path uses a non-standard pattern |
 | `ROO032` | error | Two or more skills claim the same `modeSlugs` entry |
+| `ROO034` | warning | Two skills have descriptions with high token overlap — ambiguous routing |
+| `ROO035` | warning | Skill's `modeSlugs` references a mode not defined in any `.roomodes` file |
+| `ROO036` | warning | A mode defined in `.roomodes` has no skill covering it |
 
 ---
 
@@ -139,13 +162,14 @@ extra_mode_slugs:
 
 ### Per-rule overrides
 
-Three rules accept numeric overrides under the `rules:` key:
+Four rules accept numeric overrides under the `rules:` key:
 
 | Rule | Config key | Default | Effect |
 |---|---|---|---|
 | `ROO007` | `rules.ROO007.min_length` | `50` | Minimum description length in characters. Raise it if your team requires more detail. |
 | `ROO008` | `rules.ROO008.max_length` | `400` | Maximum description length in characters. Lower it to enforce tighter descriptions. |
 | `ROO013` | `rules.ROO013.similarity_threshold` | `0.75` | Token-overlap ratio (0–1) above which two skill descriptions are flagged as too similar. Raise it to allow more overlap; lower it to enforce stricter uniqueness. |
+| `ROO034` | `rules.ROO034.overlap_threshold` | `0.60` | SequenceMatcher ratio (0–1) above which two skill descriptions are flagged as routing-ambiguous. |
 
 **Example** — enforce 60-char minimum and flag descriptions that are 80%+ similar:
 
@@ -218,7 +242,7 @@ vague_words:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/hananel-e/agent-skill-lint
-    rev: v0.1.0
+    rev: v0.2.0
     hooks:
       - id: skill-lint-roo
         name: skill-lint (Roo skills)
@@ -248,12 +272,66 @@ pytest
 | Terminal output | `rich` |
 | Frontmatter parsing | `python-frontmatter` |
 | Markdown parsing | `markdown-it-py` |
-| Token overlap (ROO013) | `difflib.SequenceMatcher` (stdlib) |
+| Token overlap (ROO013, ROO034) | `difflib.SequenceMatcher` (stdlib) |
 | Config file | `pyyaml` |
+| Slug registry | stdlib `urllib`, `json` |
+| Routing simulator | stdlib `difflib`, `re` |
+| Embedding backend (opt-in) | `sentence-transformers` + `numpy` |
 | Build backend | `hatchling` |
 | Test framework | `pytest` |
 
-Zero heavy dependencies — no `scikit-learn`, no `sentence-transformers`, no LLM calls.
+Zero heavy dependencies by default — no `scikit-learn`, no LLM calls.
+Use `pip install 'agent-skill-lint[embeddings]'` to enable the embedding-based routing simulator.
+
+---
+
+## v0.2.0 Features
+
+### Quality Scorer (`roo score`)
+
+Converts lint violations into a numeric score (0–100) and letter grade (A–F) per skill, plus an aggregate average. Use `--fail-under N` to gate CI on quality.
+
+```
+Scoring: base 100, -15 per ERROR, -5 per WARNING (clamped to 0)
+Grades:  A ≥90  B ≥80  C ≥70  D ≥60  F <60
+```
+
+### Routing Simulator (`roo simulate`)
+
+Ranks all scanned skills by how well their description matches a natural-language query. Useful for spotting ambiguous descriptions before deploying to a live agent.
+
+- Default: heuristic keyword scoring (no extra deps)
+- `--embeddings`: cosine similarity via `sentence-transformers` (more accurate)
+- `--top N`: show top N matches
+- `--fuzzy-threshold`: tune fuzzy matching sensitivity
+
+### Framework Sync Checker (`roo sync`)
+
+Compares `.roomodes` definitions against scanned skill files. Detects:
+- **Undocumented modes**: defined in `.roomodes` but no skill covers them
+- **Orphaned slugs**: a skill's `modeSlugs` references a mode absent from `.roomodes`
+
+### Slug Registry (`roo update-slugs`)
+
+Fetches the latest known mode slugs from GitHub and caches them at `~/.cache/skill-lint/slugs.json`. ROO005 reads from this cache so the known-slug list stays current without a code release.
+
+### New Rules
+
+| Rule | Description |
+|---|---|
+| `ROO034` | Two skills have descriptions with high token overlap — ambiguous routing |
+| `ROO035` | Skill's `modeSlugs` references a mode not defined in any `.roomodes` file |
+| `ROO036` | A mode defined in `.roomodes` has no skill covering it |
+
+---
+
+## Limitations
+
+**Heuristic rules are not perfect.** ROO010–ROO014 and ROO034 fire on patterns that *correlate* with poor skill quality — they are not proofs. A description can pass all rules and still be a bad routing signal, or fail ROO011 and still work fine in practice. Treat warnings as prompts to review, not verdicts.
+
+**Routing simulator is heuristic by default.** The `roo simulate` command uses keyword overlap, not semantic understanding. Use `--embeddings` with `sentence-transformers` for more accurate results.
+
+**Sync checker requires `.roomodes`.** `roo sync` and ROO035/ROO036 are no-ops when no `.roomodes` files are found in the repo. They are only meaningful for Roo-based agent setups.
 
 ---
 

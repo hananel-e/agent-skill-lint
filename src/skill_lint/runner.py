@@ -112,6 +112,7 @@ def run_scan(
         files_scanned=len(skills),
         files_clean=len(skills) - len(files_with_violations),
         violations=all_violations,
+        skill_files=skills,
     )
     return result
 

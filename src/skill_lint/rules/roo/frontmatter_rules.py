@@ -4,26 +4,11 @@ from __future__ import annotations
 
 from skill_lint.models import Severity, Violation
 from skill_lint.rules.base import Rule, register
+from skill_lint.slug_registry import FALLBACK_SLUGS, load_slugs
 
-KNOWN_MODE_SLUGS = frozenset(
-    [
-        "code",
-        "architect",
-        "ask",
-        "debug",
-        "orchestrator",
-        "task-break",
-        "test",
-        "review",
-        "env",
-        "spec",
-        "build",
-        "ship",
-        "test-dev-orchestrator",
-        "analyst",
-        "merge-resolver",
-    ]
-)
+# Module-level known slugs: loaded once from registry (cache → bundled → fallback).
+# Individual rules may merge extra_mode_slugs from config on top of this.
+KNOWN_MODE_SLUGS: frozenset[str] = load_slugs()
 
 
 @register

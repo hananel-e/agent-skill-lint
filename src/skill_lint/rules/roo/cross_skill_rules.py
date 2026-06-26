@@ -1,4 +1,4 @@
-"""Cross-skill consistency rules: ROO030–ROO032."""
+"""Cross-skill consistency rules: ROO030–ROO036."""
 
 from __future__ import annotations
 
@@ -111,4 +111,121 @@ class ROO032(Rule):
                         line=skill.mode_slugs_line,
                     )
                 )
+        return violations
+
+
+@register
+class ROO034(Rule):
+    rule_id = "ROO034"
+    severity = Severity.WARNING
+    description = "Two skills have descriptions with high token overlap — ambiguous routing"
+    rationale = (
+        "When two or more skills have very similar descriptions, the LLM router may "
+        "select the wrong skill. Rewrite descriptions to be more distinct, or merge "
+        "the skills if they truly cover the same use-case."
+    )
+
+    def check(self, skill, **kwargs) -> list[Violation]:
+        all_skills = kwargs.get("all_skills", [])
+        cfg = kwargs.get("cfg", {})
+        if not all_skills or len(all_skills) < 2:
+            return []
+
+        if skill.description is None:
+            return []
+
+        threshold = cfg.get("rules", {}).get("ROO034", {}).get("overlap_threshold", 0.60)
+
+        from difflib import SequenceMatcher
+
+        violations = []
+        for other in all_skills:
+            if other.path == skill.path or other.description is None:
+                continue
+            ratio = SequenceMatcher(None, skill.description, other.description).ratio()
+            if ratio >= threshold:
+                violations.append(
+                    self._violation(
+                        skill,
+                        f"description overlaps {ratio:.0%} with `{other.name or other.path}` "
+                        f"(threshold {threshold:.0%}) — routing may be ambiguous",
+                        line=skill.description_line,
+                    )
+                )
+        return violations
+
+
+@register
+class ROO035(Rule):
+    rule_id = "ROO035"
+    severity = Severity.WARNING
+    description = "Skill's `modeSlugs` references a mode not defined in any `.roomodes` file"
+    rationale = (
+        "If a skill claims a mode slug that is not defined in any `.roomodes` file in the "
+        "repository, the skill will never be activated by the framework. Either add the mode "
+        "to `.roomodes` or remove the slug from the skill."
+    )
+
+    def check(self, skill, **kwargs) -> list[Violation]:
+        repo_root: Path | None = kwargs.get("repo_root")
+        if repo_root is None:
+            return []
+
+        from skill_lint.sync import load_roomodes
+        roomodes_slugs = load_roomodes(repo_root)
+        if not roomodes_slugs:
+            # No .roomodes files found — skip (repo may not use Roo framework)
+            return []
+
+        violations = []
+        for slug in skill.mode_slugs:
+            if slug not in roomodes_slugs:
+                violations.append(
+                    self._violation(
+                        skill,
+                        f"mode slug `{slug}` is not defined in any `.roomodes` file",
+                        line=skill.mode_slugs_line,
+                    )
+                )
+        return violations
+
+
+@register
+class ROO036(Rule):
+    rule_id = "ROO036"
+    severity = Severity.WARNING
+    description = "A mode defined in `.roomodes` has no skill covering it"
+    rationale = (
+        "Every custom mode in `.roomodes` should have at least one skill that covers it "
+        "(i.e. lists the slug in `modeSlugs`). Modes without skills have no specialised "
+        "instructions and will fall back to default behaviour."
+    )
+
+    def check(self, skill, **kwargs) -> list[Violation]:
+        # This is a cross-skill rule: only fire on the first skill to avoid duplicates.
+        all_skills = kwargs.get("all_skills", [])
+        if not all_skills or skill.path != all_skills[0].path:
+            return []
+
+        repo_root: Path | None = kwargs.get("repo_root")
+        if repo_root is None:
+            return []
+
+        from skill_lint.sync import load_roomodes, sync_report
+        roomodes_slugs = load_roomodes(repo_root)
+        if not roomodes_slugs:
+            return []
+
+        report = sync_report(all_skills, roomodes_slugs)
+        violations = []
+        for slug in report.undocumented_modes:
+            source = roomodes_slugs.get(slug)
+            source_hint = f" (defined in {source})" if source else ""
+            violations.append(
+                self._violation(
+                    skill,
+                    f"mode `{slug}`{source_hint} has no skill covering it",
+                    line=None,
+                )
+            )
         return violations

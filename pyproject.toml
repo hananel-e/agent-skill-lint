@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-skill-lint"
-version = "0.1.0"
+version = "0.2.0"
 description = "Static quality linter for AI agent skill definitions (SKILL.md files)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -46,6 +46,10 @@ dev = [
     "pytest-cov>=5.0.0",
     "build>=1.0.0",
     "twine>=5.0.0",
+]
+embeddings = [
+    "sentence-transformers>=3.0.0",
+    "numpy>=1.26.0",
 ]
 
 [tool.hatch.build.targets.wheel]

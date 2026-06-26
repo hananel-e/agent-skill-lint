@@ -73,6 +73,9 @@ class ScanResult:
     files_scanned: int = 0
     files_clean: int = 0
     violations: list[Violation] = field(default_factory=list)
+    # Populated by runner so downstream consumers (scorer, simulator) can
+    # iterate all parsed skills without re-scanning.
+    skill_files: list["SkillFile"] = field(default_factory=list)
 
     @property
     def errors(self) -> int:
