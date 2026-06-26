@@ -1,0 +1,23 @@
+# .skill-lint.yaml — place at repo root
+# Copy this file to .skill-lint.yaml and customise as needed.
+
+rules:
+  ROO007:
+    min_length: 60          # override default (50)
+  ROO008:
+    max_length: 300         # override default (400)
+  ROO013:
+    similarity_threshold: 0.80   # override default (0.75)
+
+ignore:
+  - ".roo/skills/legacy/"        # skip entire directory
+  - "ROO031"                     # globally disable a rule
+
+# Custom vague words (appended to built-in list: handles, manages, does, performs, processes)
+vague_words:
+  - "facilitates"
+  - "coordinates"
+
+# Known mode slugs (appended to built-in list)
+extra_mode_slugs:
+  - "my-custom-mode"
