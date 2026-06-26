@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "skill-lint"
+name = "agent-skill-lint"
 version = "0.1.0"
 description = "Static quality linter for AI agent skill definitions (SKILL.md files)"
 readme = "README.md"
@@ -32,10 +32,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/hananel-e/skill-lint"
-Repository = "https://github.com/hananel-e/skill-lint"
-"Bug Tracker" = "https://github.com/hananel-e/skill-lint/issues"
-Changelog = "https://github.com/hananel-e/skill-lint/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/hananel-e/agent-skill-lint"
+Repository = "https://github.com/hananel-e/agent-skill-lint"
+"Bug Tracker" = "https://github.com/hananel-e/agent-skill-lint/issues"
+Changelog = "https://github.com/hananel-e/agent-skill-lint/blob/main/CHANGELOG.md"
 
 [project.scripts]
 skill-lint = "skill_lint.cli:app"

@@ -1,8 +1,8 @@
-# skill-lint
+# agent-skill-lint
 
 > Static quality linter for AI agent skill definitions (`SKILL.md` files).
 
-`skill-lint` is the `eslint` of the agent skill world — pure static analysis, zero LLM calls, zero cloud dependency, pre-commit-friendly, CI-ready.
+`agent-skill-lint` is the `eslint` of the agent skill world — pure static analysis, zero LLM calls, zero cloud dependency, pre-commit-friendly, CI-ready.
 
 It catches bad skill definitions **at development time**, before they reach the agent.
 
@@ -11,14 +11,14 @@ It catches bad skill definitions **at development time**, before they reach the 
 ## Installation
 
 ```bash
-pip install skill-lint
+pip install agent-skill-lint
 ```
 
 Or from source:
 
 ```bash
-git clone https://github.com/hananel-e/skill-lint
-cd skill-lint
+git clone https://github.com/hananel-e/agent-skill-lint
+cd agent-skill-lint
 pip install -e ".[dev]"
 ```
 
@@ -217,7 +217,7 @@ vague_words:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/hananel-e/skill-lint
+  - repo: https://github.com/hananel-e/agent-skill-lint
     rev: v0.1.0
     hooks:
       - id: skill-lint-roo
