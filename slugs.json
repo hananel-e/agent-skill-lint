@@ -1,7 +1,8 @@
 {
   "version": 1,
-  "source": "bundled",
+  "source": "collected",
   "slugs": [
+    "analyst",
     "architect",
     "ask",
     "build",
@@ -15,7 +16,6 @@
     "spec",
     "task-break",
     "test",
-    "test-dev-orchestrator",
-    "analyst"
+    "test-dev-orchestrator"
   ]
 }
